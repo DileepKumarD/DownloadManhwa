@@ -237,7 +237,7 @@ def download_chapter(website, manhwa_name, chapter, download_manhwa_dir, manhwa_
         try:
             save_to_pdf(pdf_file, images_list)
             if not with_error:
-                cleanup_after_successful_download([pdf_file_with_error], [temp_download_manhwa_dir])
+                cleanup_after_successful_download([pdf_file_with_error], [download_manhwa_chapter_dir])
                 return True
             else:
                 return False
