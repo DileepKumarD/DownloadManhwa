@@ -20,7 +20,7 @@ try_count = 2
 check_for_cdn_in_image_link = True
 merge_and_create_single_pdf_file = True
 
-download_path = '/Users/Dileep/Downloads2/'
+download_path = '/Users/Dileep/Downloads/'
 
 MANHWA_CLUB = 'manhwa.club'
 MANHWA18_NET = 'manhwa18.net'
