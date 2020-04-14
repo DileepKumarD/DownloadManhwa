@@ -42,7 +42,7 @@ manhwa_list = [
     {
         'manhwa_name': 'what-do-you-take-me-for',
         'starting_chapter': 1,
-        'ending_chapter': 76
+        'ending_chapter': 77
     },
     {
         'manhwa_name' : 'family-tree-raw',
@@ -68,9 +68,9 @@ def init():
 def finish():
     executor.shutdown(wait=True)
 
-def create_directory(dir):
-    if not os.path.exists(dir):
-        os.makedirs(dir)
+def create_directory(dir_name):
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
 
 def is_file_already_present(file):
     if os.path.exists(file):
@@ -95,7 +95,7 @@ def merge_and_create_single_pdf(download_manhwa_dir, manhwa):
     if not is_file_already_present(merged_file_name):
         file_list = list()
         for file in os.listdir(download_manhwa_dir):
-            if file.endswith(".pdf") and (file.find('from_chapter') == -1):
+            if file.endswith(".pdf") and (file.find('from_chapter') == -1) and (file.find('with-error') == -1):
                 file_path = os.path.join(download_manhwa_dir, file)
                 file_list.append(file_path)
         file_list.sort()
@@ -103,12 +103,12 @@ def merge_and_create_single_pdf(download_manhwa_dir, manhwa):
         if len(file_list) != (ending_chapter-starting_chapter+1):
             raise Exception("All chapters in the specified range are not downloaded for file: ", merged_file_name)
 
-        mergedObject = PdfFileMerger()
+        merged_object = PdfFileMerger()
 
         for file in file_list:
-            mergedObject.append(PdfFileReader(file, 'rb'))
+            merged_object.append(PdfFileReader(file, 'rb'))
 
-        mergedObject.write(merged_file_name)
+        merged_object.write(merged_file_name)
 
     return merged_file_name
 
@@ -121,9 +121,9 @@ def cleanup_after_successful_download(files_list, dir_list):
     try:
         for file in files_list:
             remove_file(file)
-        for dir in dir_list:
-            shutil.rmtree(dir)
-    except Exception as e:
+        for dir_name in dir_list:
+            shutil.rmtree(dir_name)
+    except:
         print("Failed while cleaningup temp files after succesful download")
 
 def download_image(url, image_file):
