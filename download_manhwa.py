@@ -14,13 +14,13 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 get_chapter_timeout = 150
 get_image_timeout = 200
 verification_https = True
-thread_count = 20
+thread_count = 10
 try_count = 2
 
 check_for_cdn_in_image_link = True
 merge_and_create_single_pdf_file = True
 
-download_path = '/Users/Dileep/Downloads/'
+download_path = '/Users/Dileep/Downloads2/'
 
 MANHWA_CLUB = 'manhwa.club'
 MANHWA18_NET = 'manhwa18.net'
@@ -42,12 +42,14 @@ manhwa_list = [
     {
         'manhwa_name': 'what-do-you-take-me-for',
         'starting_chapter': 1,
-        'ending_chapter': 77
+        'ending_chapter': 77,
+        'manhwa_download_name': 'what-do-you-take-me-for'
     },
     {
         'manhwa_name' : 'family-tree-raw',
         'starting_chapter' : 16,
-        'ending_chapter' : 32
+        'ending_chapter' : 32,
+        'manhwa_download_name': 'family-tree-raw'
     },
 ]
 
@@ -64,6 +66,9 @@ def init():
     global download_path
     if not is_file_already_present(download_path):
         download_path = os.path.curdir
+        download_path = os.path.join(download_path, "DownloadedFiles")
+        create_directory(download_path)
+        download_path = download_path
 
 def finish():
     executor.shutdown(wait=True)
@@ -84,24 +89,32 @@ def remove_file(file):
         print('Removed file: {}'.format(file))
 
 def merge_and_create_single_pdf(download_manhwa_dir, manhwa):
-    manhwa_name = manhwa['manhwa_name']
     starting_chapter = manhwa['starting_chapter']
     ending_chapter = manhwa['ending_chapter']
+    manhwa_download_name = manhwa['manhwa_download_name']
 
-    merged_file_name = os.path.join(download_manhwa_dir, '{}_from_chapter-{}-{}.pdf'.format(str(manhwa_name),
+    merged_file_name = os.path.join(download_manhwa_dir, '{}-from-chapter-{}-{}.pdf'.format(str(manhwa_download_name),
                                                                                            str(starting_chapter).zfill(3),
                                                                                            str(ending_chapter).zfill(3)))
+
+    if starting_chapter == ending_chapter:
+        raise Exception("Couldn't find multiple downloaded chapters to merge")
 
     if not is_file_already_present(merged_file_name):
         file_list = list()
         for file in os.listdir(download_manhwa_dir):
-            if file.endswith(".pdf") and (file.find('from_chapter') == -1) and (file.find('with-error') == -1):
+            if file.endswith(".pdf") and (file.find('from-chapter') == -1) and (file.find('with-error') == -1):
+                chapter_num = int(file.rpartition('-')[2].replace('.pdf',''))
+                if chapter_num < starting_chapter or chapter_num > ending_chapter:
+                    continue
+
                 file_path = os.path.join(download_manhwa_dir, file)
                 file_list.append(file_path)
+
         file_list.sort()
 
         if len(file_list) != (ending_chapter-starting_chapter+1):
-            raise Exception("All chapters in the specified range are not downloaded for file: ", merged_file_name)
+            raise Exception("All chapters in the specified range are not downloaded for file: " + merged_file_name)
 
         merged_object = PdfFileMerger()
 
@@ -135,13 +148,13 @@ def download_image(url, image_file):
     print('Saved image: {}'.format(str(image_file)))
     return image_file
 
-def download_chapter(website, manhwa_name, chapter, download_manhwa_dir):
+def download_chapter(website, manhwa_name, chapter, download_manhwa_dir, manhwa_download_name):
     base_url = website['base_url']
     image_src = website['image_src']
     image_format = website['image_format']
 
     url = base_url.format(manhwa_name, chapter)
-    chapter_name = '{}-{}'.format(str(manhwa_name), str(chapter).zfill(3))
+    chapter_name = '{}-{}'.format(str(manhwa_download_name), str(chapter).zfill(3))
 
     pdf_file = os.path.join(download_manhwa_dir, '{}.pdf'.format(chapter_name))
 
@@ -237,16 +250,21 @@ def download_chapter(website, manhwa_name, chapter, download_manhwa_dir):
                                                                 str(e)))
         return False
 
-def download_all_chapters(website, manhwa_name, start, end, download_manhwa_dir):
-    for chapter in range(start, end + 1):
+def download_all_chapters(website, manhwa, download_manhwa_dir):
+    manhwa_name = manhwa['manhwa_name']
+    starting_chapter = manhwa['starting_chapter']
+    ending_chapter = manhwa['ending_chapter']
+    manhwa_download_name = manhwa['manhwa_download_name']
+
+    for chapter in range(starting_chapter, ending_chapter + 1):
         print("Chapter No: " + str(chapter))
 
         start_time = datetime.now()
         for retry_count in range(0, try_count):
-            download_successful = download_chapter(website, manhwa_name, chapter, download_manhwa_dir)
+            download_successful = download_chapter(website, manhwa_name, chapter, download_manhwa_dir, manhwa_download_name)
             if download_successful:
                 end_time = datetime.now()
-                print("Downloaded Manhwa Chapter: {}-{}, time_taken: {} sec".format(str(manhwa_name), str(chapter), str(
+                print("Downloaded Manhwa Chapter: {}-{}, time_taken: {} sec".format(str(manhwa_download_name), str(chapter), str(
                     (end_time - start_time).seconds)))
                 break
 
@@ -255,9 +273,9 @@ def download_all_manhwas_from_website(website, manhwa_list):
 
     for manhwa in manhwa_list:
         try:
-            download_manhwa_dir = os.path.join(download_path, manhwa['manhwa_name'])
+            download_manhwa_dir = os.path.join(download_path, manhwa['manhwa_download_name'])
             create_directory(download_manhwa_dir)
-            download_all_chapters(website, manhwa['manhwa_name'], manhwa['starting_chapter'], manhwa['ending_chapter'], download_manhwa_dir)
+            download_all_chapters(website, manhwa, download_manhwa_dir)
             try:
                 if merge_and_create_single_pdf_file:
                     merged_file_name = merge_and_create_single_pdf(download_manhwa_dir, manhwa)
