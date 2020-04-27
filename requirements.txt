@@ -6,6 +6,7 @@ img2pdf==0.3.4
 lxml==4.5.0
 Pillow==7.1.1
 PyPDF2==1.26.0
+PyYAML==5.3.1
 requests==2.23.0
 soupsieve==2.0
 urllib3==1.25.8
