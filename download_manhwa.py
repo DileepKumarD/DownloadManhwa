@@ -1,5 +1,8 @@
+import enum
 from concurrent.futures.thread import ThreadPoolExecutor
 from datetime import datetime
+
+import yaml
 from PyPDF2 import PdfFileMerger, PdfFileReader
 
 from bs4 import BeautifulSoup
@@ -14,46 +17,66 @@ requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 get_chapter_timeout = 150
 get_image_timeout = 200
 verification_https = True
-thread_count = 10
+thread_count = 5
 try_count = 2
 
+input_from_file = True
 check_for_cdn_in_image_link = True
 merge_and_create_single_pdf_file = True
 
 download_path = '/Users/Dileep/Downloads/'
+input_file = 'manhwa_list.yml'
 
-MANHWA_CLUB = 'manhwa.club'
-MANHWA18_NET = 'manhwa18.net'
+class WebSites(enum.Enum):
+    MANHWA_CLUB = 'manhwa.club'
+    MANHWA18_NET = 'manhwa18.net'
+
+class ManhwaIdentifiers(enum.Enum):
+    MANHWA_NAME = 'manhwa_name'
+    STARTING_CHAPTER = 'starting_chapter'
+    ENDING_CHAPTER = 'ending_chapter'
+    MANHWA_DOWNLOAD_NAME = 'manhwa_download_name'
+
 
 manhwa_websites = {
-    MANHWA_CLUB: {
+    WebSites.MANHWA_CLUB: {
         'base_url': 'https://manhwa.club/manhwa/{}/chapter-{}',
         'image_src': 'data-src',
         'image_format': 'jpg',
     },
-    MANHWA18_NET : {
+    WebSites.MANHWA18_NET : {
         'base_url' : 'https://manhwa18.net/read-{}-chapter-{}.html',
         'image_src': 'data-original',
         'image_format': 'jpg',
     },
 }
 
-manhwa_list = [
-    {
-        'manhwa_name': 'what-do-you-take-me-for',
-        'starting_chapter': 1,
-        'ending_chapter': 77,
-        'manhwa_download_name': 'what-do-you-take-me-for'
-    },
-    {
-        'manhwa_name' : 'family-tree-raw',
-        'starting_chapter' : 16,
-        'ending_chapter' : 32,
-        'manhwa_download_name': 'family-tree-raw'
-    },
-]
+manhwa_list = []
 
 executor = None
+
+def parse_manhwa_list(input_file):
+    manhwa_list = list()
+
+    with open(input_file, 'r') as stream:
+        try:
+            data = yaml.safe_load(stream)
+            manhwas = data.split(' ')
+            for manhwa in manhwas:
+                manhwa = manhwa.split(',')
+                if(len(manhwa) == 4):
+                    manhwa_dict = {}
+                    manhwa_dict[ManhwaIdentifiers.MANHWA_NAME] = manhwa[0]
+                    manhwa_dict[ManhwaIdentifiers.STARTING_CHAPTER] = int(manhwa[1])
+                    manhwa_dict[ManhwaIdentifiers.ENDING_CHAPTER] = int(manhwa[2])
+                    manhwa_dict[ManhwaIdentifiers.MANHWA_DOWNLOAD_NAME] = manhwa[3]
+                    manhwa_list.append(manhwa_dict)
+                else:
+                    print("parsing input manhwa list from file error: ", manhwa)
+
+            return manhwa_list
+        except yaml.YAMLError as exc:
+            print("parsing input manhwa list from file error: ", exc)
 
 def init():
     global executor
@@ -69,6 +92,10 @@ def init():
         download_path = os.path.join(download_path, "DownloadedFiles")
         create_directory(download_path)
         download_path = download_path
+
+    global manhwa_list
+    if input_from_file:
+        manhwa_list = parse_manhwa_list(input_file)
 
 def finish():
     executor.shutdown(wait=True)
@@ -89,9 +116,9 @@ def remove_file(file):
         print('Removed file: {}'.format(file))
 
 def merge_and_create_single_pdf(download_manhwa_dir, manhwa):
-    starting_chapter = manhwa['starting_chapter']
-    ending_chapter = manhwa['ending_chapter']
-    manhwa_download_name = manhwa['manhwa_download_name']
+    starting_chapter = manhwa[ManhwaIdentifiers.STARTING_CHAPTER]
+    ending_chapter = manhwa[ManhwaIdentifiers.ENDING_CHAPTER]
+    manhwa_download_name = manhwa[ManhwaIdentifiers.MANHWA_DOWNLOAD_NAME]
 
     merged_file_name = os.path.join(download_manhwa_dir, '{}-from-chapter-{}-{}.pdf'.format(str(manhwa_download_name),
                                                                                            str(starting_chapter).zfill(3),
@@ -251,10 +278,10 @@ def download_chapter(website, manhwa_name, chapter, download_manhwa_dir, manhwa_
         return False
 
 def download_all_chapters(website, manhwa, download_manhwa_dir):
-    manhwa_name = manhwa['manhwa_name']
-    starting_chapter = manhwa['starting_chapter']
-    ending_chapter = manhwa['ending_chapter']
-    manhwa_download_name = manhwa['manhwa_download_name']
+    manhwa_name = manhwa[ManhwaIdentifiers.MANHWA_NAME]
+    starting_chapter = manhwa[ManhwaIdentifiers.STARTING_CHAPTER]
+    ending_chapter = manhwa[ManhwaIdentifiers.ENDING_CHAPTER]
+    manhwa_download_name = manhwa[ManhwaIdentifiers.MANHWA_DOWNLOAD_NAME]
 
     for chapter in range(starting_chapter, ending_chapter + 1):
         print("Chapter No: " + str(chapter))
@@ -268,12 +295,12 @@ def download_all_chapters(website, manhwa, download_manhwa_dir):
                     (end_time - start_time).seconds)))
                 break
 
-def download_all_manhwas_from_website(website, manhwa_list):
+def download_all_manhwas_from_website(website):
     init()
 
     for manhwa in manhwa_list:
         try:
-            download_manhwa_dir = os.path.join(download_path, manhwa['manhwa_download_name'])
+            download_manhwa_dir = os.path.join(download_path, manhwa[ManhwaIdentifiers.MANHWA_DOWNLOAD_NAME])
             create_directory(download_manhwa_dir)
             download_all_chapters(website, manhwa, download_manhwa_dir)
             try:
@@ -289,6 +316,6 @@ def download_all_manhwas_from_website(website, manhwa_list):
 
     finish()
 
-download_all_manhwas_from_website(manhwa_websites[MANHWA_CLUB], manhwa_list)
+download_all_manhwas_from_website(manhwa_websites[WebSites.MANHWA_CLUB])
 
-# download_all_manhwas_from_website(manhwa_websites[MANHWA18_NET], manhwa_list)
+# download_all_manhwas_from_website(manhwa_websites[WebSites.MANHWA18_NET])
