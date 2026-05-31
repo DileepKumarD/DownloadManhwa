@@ -28,8 +28,8 @@ download_path = '/Users/Dileep/Downloads/'
 input_file = 'manhwa_list.yml'
 
 class WebSites(enum.Enum):
-    MANHWA_CLUB = 'manhwa.club'
-    MANHWA18_NET = 'manhwa18.net'
+    FLAME_COMICS = 'flamecomics.xyz'
+    MANTA_NET = 'manta.net'
 
 class ManhwaIdentifiers(enum.Enum):
     MANHWA_NAME = 'manhwa_name'
@@ -39,13 +39,13 @@ class ManhwaIdentifiers(enum.Enum):
 
 
 manhwa_websites = {
-    WebSites.MANHWA_CLUB: {
-        'base_url': 'https://manhwa.club/manhwa/{}/chapter-{}',
+    WebSites.FLAME_COMICS: {
+        'base_url': 'https://flamecomics.xyz/manhwa/{}/chapter-{}',
         'image_src': 'data-src',
         'image_format': 'jpg',
     },
-    WebSites.MANHWA18_NET : {
-        'base_url' : 'https://manhwa18.net/read-{}-chapter-{}.html',
+    WebSites.MANTA_NET : {
+        'base_url' : 'https://manta.net/read-{}-chapter-{}.html',
         'image_src': 'data-original',
         'image_format': 'jpg',
     },
@@ -316,6 +316,6 @@ def download_all_manhwas_from_website(website):
 
     finish()
 
-download_all_manhwas_from_website(manhwa_websites[WebSites.MANHWA_CLUB])
+download_all_manhwas_from_website(manhwa_websites[WebSites.FLAME_COMICS])
 
-# download_all_manhwas_from_website(manhwa_websites[WebSites.MANHWA18_NET])
+# download_all_manhwas_from_website(manhwa_websites[WebSites.MANTA_NET])
